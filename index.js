@@ -102,21 +102,23 @@ function updateStatusLabel(text) {
 }
 
 function updateCatLines(state) {
-  var main = $('#cat-message-main');
-  var secondary = $('#cat-message-secondary');
+  var cat = $('#hero-cat');
+  var line = $('#cat-status-line');
+  if (!cat.length || !line.length) return;
+  cat.removeClass('cat--running cat--done cat--idle');
   switch (state) {
     case 'running':
-      main.text("I'm stirring the pot and watching the clock.");
-      secondary.text('I will give a polite paw tap when it is time to serve.');
+      cat.addClass('cat--running');
+      line.text("Timer is ticking—I'm pacing by the bowl!");
       break;
     case 'done':
-      main.text('Dinner bell! I am waiting by the bowl like a tiny human host.');
-      secondary.text('Plates are set, napkins are folded—please feed the cats.');
+      cat.addClass('cat--done');
+      line.text('Ding! Snack time—fill my bowl, please.');
       break;
     case 'paused':
     default:
-      main.text('Everything is calm. The cats are sipping tea while you plan the meal.');
-      secondary.text('Choose a preset and we will keep watch together.');
+      cat.addClass('cat--idle');
+      line.text('Set a timer and watch the big orange cat wiggle.');
       break;
   }
 }
