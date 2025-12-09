@@ -9,6 +9,7 @@ var stopBy = null;
 var delay = 1800000; // default 30 minutes
 var audioRemind = null;
 var audioEnd = null;
+var actionLog = [];
 
 function newAudio(file) {
   var node = new Audio();
@@ -32,6 +33,7 @@ function show() {
   isShow = !isShow;
   $('.fbtn').css('opacity', isShow ? '1.0' : '0.25');
   $('#hide').text(isShow ? 'Hide nudges' : 'Show nudges');
+  logAction(isShow ? 'Nudges revealed' : 'Nudges hidden');
 }
 
 function pad(num) {
@@ -58,31 +60,80 @@ function setTimerText(ms) {
   resize();
 }
 
+function describeSeconds(sec) {
+  if (sec % 3600 === 0) {
+    var hours = sec / 3600;
+    return hours + ' hour' + (hours === 1 ? '' : 's');
+  }
+  if (sec % 60 === 0) {
+    var mins = sec / 60;
+    return mins + ' minute' + (mins === 1 ? '' : 's');
+  }
+  return sec + ' second' + (sec === 1 ? '' : 's');
+}
+
+function logAction(text) {
+  var now = new Date();
+  var stamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  actionLog.unshift({ text: text, stamp: stamp });
+  if (actionLog.length > 8) {
+    actionLog.pop();
+  }
+  var list = $('#action-log');
+  if (!list.length) return;
+  list.empty();
+  actionLog.forEach(function (entry) {
+    var item = $('<li class="action-item"></li>');
+    item.append('<span class="action-time">' + entry.stamp + '</span>');
+    item.append('<span class="action-text">' + entry.text + '</span>');
+    list.append(item);
+  });
+}
+
+function getRemainingMs() {
+  if (start) {
+    return start.getTime() - new Date().getTime() + delay + latency;
+  }
+  return delay;
+}
+
 function updateStatusLabel(text) {
   $('#status').text(text);
 }
 
 function updateCatLines(state) {
-  var main = $('#cat-message-main');
-  var secondary = $('#cat-message-secondary');
+  var cat = $('#hero-cat');
+  var line = $('#cat-status-line');
+  if (!cat.length || !line.length) return;
+  cat.removeClass('cat--running cat--done cat--idle');
   switch (state) {
     case 'running':
-      main.text("I'm stirring the pot and watching the clock.");
-      secondary.text('I will give a polite paw tap when it is time to serve.');
+      cat.addClass('cat--running');
+      line.text("Timer is ticking—I'm pacing by the bowl!");
       break;
     case 'done':
-      main.text('Dinner bell! I am waiting by the bowl like a tiny human host.');
-      secondary.text('Plates are set, napkins are folded—please feed the cats.');
+      cat.addClass('cat--done');
+      line.text('Ding! Snack time—fill my bowl, please.');
       break;
     case 'paused':
     default:
-      main.text('Everything is calm. The cats are sipping tea while you plan the meal.');
-      secondary.text('Choose a preset and we will keep watch together.');
+      cat.addClass('cat--idle');
+      line.text('Set a timer and watch the big orange cat wiggle.');
       break;
   }
 }
 
-function adjust(it, v) {
+function nudgeCat() {
+  var cat = $('#hero-cat');
+  if (!cat.length) return;
+  cat.addClass('cat--nudge');
+  setTimeout(function () {
+    cat.removeClass('cat--nudge');
+  }, 700);
+}
+
+function adjust(it, v, label) {
+  nudgeCat();
   if (isBlink) {
     $('#timer').removeClass('blinking');
     isBlink = false;
@@ -99,6 +150,15 @@ function adjust(it, v) {
     latency = 0;
   }
   setTimerText(delay);
+  var text = label;
+  if (!text) {
+    if (it === 0) {
+      text = 'Set timer to ' + formatTime(delay);
+    } else {
+      text = (it > 0 ? 'Added ' : 'Removed ') + describeSeconds(Math.abs(it));
+    }
+  }
+  logAction(text);
 }
 
 function toggle() {
@@ -117,9 +177,11 @@ function toggle() {
   }
   if (isRun) {
     updateCatLines('running');
+    logAction('Timer started: ' + formatTime(getRemainingMs()));
     run();
   } else {
     updateCatLines('paused');
+    logAction('Timer paused with ' + formatTime(getRemainingMs()) + ' remaining');
   }
 }
 
@@ -144,6 +206,7 @@ function reset() {
   $('#timer').removeClass('blinking');
   setTimerText(delay);
   updateCatLines('paused');
+  logAction('Timer reset to ' + formatTime(delay));
 }
 
 function count() {
@@ -178,6 +241,7 @@ function finishCountdown() {
   updateStatusLabel('Feed now!');
   $('#timer').addClass('blinking');
   updateCatLines('done');
+  logAction('Timer completed - feeding time!');
 }
 
 function run() {
@@ -209,6 +273,7 @@ window.onload = function () {
   audioRemind = newAudio('audio/smb_warning.mp3');
   audioEnd = newAudio('audio/smb_mariodie.mp3');
   updateCatLines('paused');
+  logAction('Opened timer - cats are watching.');
 };
 
 window.onresize = function () {
