@@ -123,17 +123,7 @@ function updateCatLines(state) {
   }
 }
 
-function nudgeCat() {
-  var cat = $('#hero-cat');
-  if (!cat.length) return;
-  cat.addClass('cat--nudge');
-  setTimeout(function () {
-    cat.removeClass('cat--nudge');
-  }, 700);
-}
-
 function adjust(it, v, label) {
-  nudgeCat();
   if (isBlink) {
     $('#timer').removeClass('blinking');
     isBlink = false;
